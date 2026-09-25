@@ -32,4 +32,4 @@ jobs:
             exit 0
           fi
           sudo apt-get -qq update && sudo apt-get -qq install -y lftp
-          lftp -d -u "$FTP_USER" --env-password "$FTP_HOST" -e "set ftp:ssl-allow no; set ftp:passive-mode on; set net:max-retries 2; set net:timeout 15; set net:reconnect-interval-base 5; mirror -R --delete --verbose --exclude-glob .git* ./ '$FTP_DIR'; quit" 2>&1 | grep -vE "^(<---|--->) (PASS|LIST|MLSD)" | head -200
+          lftp -d -u "$FTP_USER" --env-password "$FTP_HOST" -e "set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode on; set net:max-retries 2; set net:timeout 20; set net:reconnect-interval-base 5; mirror -R --delete --verbose --exclude-glob .git* ./ '$FTP_DIR'; quit"
