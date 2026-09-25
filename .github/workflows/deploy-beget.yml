@@ -1,0 +1,34 @@
+# Автозагрузка сайта на Beget по FTP после каждого push в main.
+# Секреты задаёт владелец в GitHub → Settings → Secrets and variables → Actions:
+#   FTP_USER, FTP_PASSWORD — FTP-аккаунт Beget, корень которого — public_html сайта.
+# Переменные (необязательно): FTP_HOST (по умолчанию w95151em.beget.tech), FTP_DIR (по умолчанию /).
+name: Deploy to Beget
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: beget-deploy
+  cancel-in-progress: true
+
+jobs:
+  ftp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload via FTP
+        env:
+          FTP_HOST: ${{ vars.FTP_HOST || 'w95151em.beget.tech' }}
+          FTP_DIR: ${{ vars.FTP_DIR || '/' }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -z "$FTP_USER" ] || [ -z "$LFTP_PASSWORD" ]; then
+            echo "::notice::FTP_USER / FTP_PASSWORD не заданы — загрузка на Beget пропущена"
+            exit 0
+          fi
+          sudo apt-get -qq update && sudo apt-get -qq install -y lftp
+          lftp -u "$FTP_USER" --env-password "$FTP_HOST" -e "set ftp:ssl-allow yes; set ssl:verify-certificate no; set net:max-retries 2; set net:timeout 20; mirror -R --delete --verbose --exclude-glob .git* ./ '$FTP_DIR'; quit"
